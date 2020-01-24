@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-
+import React, { useState, useEffect } from 'react';
+import api from "./services/api";
 import './global.css';
 import './App.css';
 import './Sidebar.css';
@@ -24,10 +24,22 @@ import './Main.css';
 // <></> (fragment: tag sem nomeclatura)
 
 function App() {
+  //programação imperativa: criar um estado e o componente deve saber se comportar com base nesse estado
+  const [devs, setDevs] = useState([]);
+  const [github_username, setGithubUsername] = useState(''); 
+  const [techs, setTechs] = useState('');
+  //estado
+  //toda vez que o usuário entra com dados no input, o estado é alterado
+  const [latitude, setLatitude] = useState(''); 
+  const [longitude, setLongitude] = useState('');
+
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        console.log(position);
+        const { latitude, longitude } = position.coords;
+        
+        setLatitude(latitude);
+        setLongitude(longitude);
       },
       (err) => {
         console.log(err);
@@ -38,27 +50,51 @@ function App() {
     );
   }, []);
 
+  //quando quero que a busca ocorra apenas um única vez
+  useEffect(() => {
+    async function loadDevs() {
+      const response = await api.get('/devs');
+      setDevs(response.data);
+    }
+    loadDevs()
+  }, []);
+
+  async function handleAddDev(e) {
+    e.preventDefault();
+
+    const response = await api.post('/devs', {
+      github_username,
+      techs,
+      latitude,
+      longitude
+    })
+
+    setGithubUsername('')
+    setTechs('')
+    setDevs([...devs, response.data]);
+  }
+
   return(
     <div id="app">
       <aside>
         <strong>Cadastrar</strong>
-        <form>
+        <form onSubmit={handleAddDev}>
           <div className="input-block">
             <label htmlFor="username_github">Usuário do Github</label>
-            <input name="github_username" id="username_github" required></input>
+            <input name="github_username" id="username_github" value={github_username} onChange={e=> setGithubUsername(e.target.value)} required></input>
           </div>
           <div className="input-block">
             <label htmlFor="techs">Tecnologias</label>
-            <input name="techs" id="techs"></input>
+            <input name="techs" id="techs" value={techs} onChange={e=> setTechs(e.target.value)}></input>
           </div>
           <div className="input-group">
             <div className="input-block">
               <label htmlFor="latitude">Latitude</label>
-              <input name="latitude" id="latitude"></input>
+              <input type="number" name="latitude" id="latitude" value={latitude} onChange={e => setLatitude(e.target.value)}></input>
             </div>
             <div className="input-block">
               <label htmlFor="longitude">Longitude</label>
-              <input name="longitude" id="longitude"></input>
+              <input type="number" name="longitude" id="longitude" value={longitude}  onChange={e => setLongitude(e.target.value)}></input>
             </div>
           </div>
 
@@ -67,50 +103,19 @@ function App() {
         </aside>
       <main>
         <ul>
-          <li className="dev-item">
+        {devs.map(dev => (
+            <li key={dev._id} className="dev-item">
             <header>
-              <img src="https://avatars0.githubusercontent.com/u/33700047?s=460&v=4" alt=""/>
+              <img src={dev.avatar_url} alt={dev.name}/>
               <div className="user-info">
-                <strong>Caroline Regalin</strong>
-                <span>Ruby on rails</span>
+                <strong>{dev.name}</strong>
+                <span>{dev.techs.join(', ')}</span>
               </div>
             </header>
-            <p>asdasd sdasdasd AASD asdsadas sdasdasd asdasdasd adasdasd</p>
-            <a href="https://github.com/cregalin">Acessar perfil no Github</a>
+            <p>{dev.bio}</p>
+              <a href={`https://github.com/${dev.github_username}`}>Acessar perfil no Github</a>
           </li>
-          <li className="dev-item">
-            <header>
-              <img src="https://avatars0.githubusercontent.com/u/33700047?s=460&v=4" alt=""/>
-              <div className="user-info">
-                <strong>Caroline Regalin</strong>
-                <span>Ruby on rails</span>
-              </div>
-            </header>
-            <p>asdasd sdasdasd AASD asdsadas sdasdasd asdasdasd adasdasd</p>
-            <a href="https://github.com/cregalin">Acessar perfil no Github</a>
-          </li>
-          <li className="dev-item">
-            <header>
-              <img src="https://avatars0.githubusercontent.com/u/33700047?s=460&v=4" alt=""/>
-              <div className="user-info">
-                <strong>Caroline Regalin</strong>
-                <span>Ruby on rails</span>
-              </div>
-            </header>
-            <p>asdasd sdasdasd AASD asdsadas sdasdasd asdasdasd adasdasd</p>
-            <a href="https://github.com/cregalin">Acessar perfil no Github</a>
-          </li>
-          <li className="dev-item">
-            <header>
-              <img src="https://avatars0.githubusercontent.com/u/33700047?s=460&v=4" alt=""/>
-              <div className="user-info">
-                <strong>Caroline Regalin</strong>
-                <span>Ruby on rails</span>
-              </div>
-            </header>
-            <p>asdasd sdasdasd AASD asdsadas sdasdasd asdasdasd adasdasd</p>
-            <a href="https://github.com/cregalin">Acessar perfil no Github</a>
-          </li>
+        ))}
         </ul>
       </main>
      </div>
